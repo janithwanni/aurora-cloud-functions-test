@@ -8,7 +8,6 @@ export const helloWorld = functions.https.onRequest((request, response) => {
   response.send("Hello from Firebase!");
 });
 
-
 export const initQuestion = functions.database
   .ref("/leaderboardRow/{leaderboardRowID}/active")
   .onUpdate((snapshot, context) => {
@@ -28,17 +27,19 @@ export const initQuestion = functions.database
       //console.log(ringLevelToQuery);
       const freeNodesRefs = rootNode
         .child("/node/" + ringLevelToQuery + "/")
-        .orderByChild("occupiedBy")
-        .equalTo(false).ref;
-      console.log("found free nodes");
+        .ref.orderByChild("occupiedBy").ref;
+      console.log("found free nodes", freeNodesRefs);
 
-      freeNodesRefs.ref.once("value").then(snapshot => {
+      freeNodesRefs.once("value").then(snapshot => {
         console.log(snapshot.val());
         let nodeID = Object.keys(snapshot.val())[0];
         rootNode
           .child("/node/" + ringLevelToQuery + "/" + nodeID + "/occupiedBy")
           .set("team-" + teamID);
-        console.log("teamID occupied node","/node/" + ringLevelToQuery + "/" + nodeID + "/occupiedBy)";
+        console.log(
+          "teamID occupied node",
+          "/node/" + ringLevelToQuery + "/" + nodeID + "/occupiedBy)"
+        );
         console.log(snapshot.val());
         const questionSet = snapshot.val()[Object.keys(snapshot.val())[0]]
           .questionSet;
@@ -98,4 +99,49 @@ export const initQuestion = functions.database
     return null;
   });
 
-  
+export const onQuestionTimeout = functions.database
+  .ref("/teamCurrentQuestion/{teamID}/timeExceeded")
+  .onUpdate((snapshot, context) => {
+    //ring level constants
+    const ringMainScores = { 4: 1, 3: 3, 2: 6, 1: 10 };
+    const ringPenalties = { 4: 0.5, 3: 1, 2: 4, 1: 9 };
+    const ringTimes = { 4: 120, 3: 105, 2: 90, 1: 60 };
+    //collect the variables neeed
+
+    let totalScore: number;
+    let score: number = 0;
+    let time: number;
+    let timeLeft: number; //get from the general timeleft node
+    let ringLevel: number;
+    let totalDistance: number;
+    let timeExceeded: number = 1; //check this from the currentTime field in the progress
+
+    /* //teamID from params
+    let teamID: number = context.params.teamID;
+    //root node to access database
+    let rootNode = snapshot.after.ref.root;
+    //get current ring level from the parent node
+    let currentringLevel = snapshot.after.ref.parent
+      .child("currentRingLevel")
+      .once("value", snapshot => {
+        //get current level from parent then the total score and total distance 
+        //score is 0 and time is the level constant as time is exceeded
+        
+        ringLevel = snapshot.val();
+        time = ringTimes[ringLevel-1];
+        
+        rootNode
+      .child("/teamProgress/" + teamID + "/")
+      .orderByKey()
+      .limitToFirst(1)
+      .ref.once("value", snapshot => {
+        totalScore = snapshot.val().totalScore;
+        totalDistance = snapshot.val().totalDistance;
+        
+      });
+      }); */
+  });
+
+export const onAnswerGiven = functions.database
+  .ref("teamCurrentQuestion/{teamID}/timeExceeded")
+  .onUpdate((snapshot, context) => {});
